@@ -21,4 +21,5 @@
 .DS_Store
 .idea
 modelgen
-temp
+tmp
+vendor
