@@ -1,4 +1,4 @@
-package main
+package migration
 
 import (
 	"fmt"
@@ -6,18 +6,39 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
 	"sort"
+
+	"github.com/LUSHDigital/modelgen/db"
 )
 
-func migrate(cmd *cobra.Command, args []string) {
-	validate()
-	connect()
-	tables := getTables()
-	makeMigrations(tables, *output)
+// Config represents migration configuration options
+type Config struct {
+	Output string
+}
+
+// Migration represents a migration of the database
+type Migration struct {
+	db  *db.DB
+	cfg *Config
+}
+
+// NewMigration will perform migrations on the database
+func NewMigration(database *db.DB, config *Config) *Migration {
+	return &Migration{db: database, cfg: config}
+}
+
+// Run will run the migrations
+func (m *Migration) Run() {
+	tables := m.db.GetTables()
+	if len(tables) == 0 {
+		log.Fatal("database has no tables")
+	}
+
+	m.makeMigrations(tables, m.cfg.Output)
 }
 
 var autoincrementRegExp = regexp.MustCompile(`(?ms) AUTO_INCREMENT=[0-9]*\b`)
@@ -43,7 +64,7 @@ type statement struct {
 }
 type statements []statement
 
-func makeMigrations(tables map[string]string, dst string) {
+func (m *Migration) makeMigrations(tables map[string]string, dst string) {
 	archive(dst)
 	os.Mkdir(dst, 0777)
 	now := time.Now().Unix()
@@ -52,7 +73,7 @@ func makeMigrations(tables map[string]string, dst string) {
 
 	for table, comment := range tables {
 		// get the create statement
-		row := database.QueryRow(fmt.Sprintf("SHOW CREATE TABLE `%s`", table))
+		row := m.db.QueryRow(fmt.Sprintf("SHOW CREATE TABLE `%s`", table))
 		var tbl, stmt string
 		row.Scan(&tbl, &stmt)
 		order := GetOrderFromComment(comment)
@@ -90,4 +111,22 @@ func makeMigrations(tables map[string]string, dst string) {
 		// Ensure the time increments properly
 		now += 1
 	}
+}
+
+// GetOrderFromComment reads the modelgen:1 type comments and returns
+// the integer part on the right
+func GetOrderFromComment(comment string) (order int) {
+	if !strings.HasPrefix(comment, "modelgen") {
+		return
+	}
+	parts := strings.SplitN(comment, ":", 2)
+	if len(parts) != 2 {
+		return
+	}
+	var err error
+	if order, err = strconv.Atoi(parts[1]); err != nil {
+		log.Printf("could not parse id comment [%v], make sure to only use numbers in order comments", parts[1])
+		return
+	}
+	return
 }

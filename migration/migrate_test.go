@@ -1,6 +1,10 @@
-package main
+package migration_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/LUSHDigital/modelgen/migration"
+)
 
 func TestGetOrderFromComment(t *testing.T) {
 	type args struct {
@@ -28,7 +32,7 @@ func TestGetOrderFromComment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotOrder := GetOrderFromComment(tt.args.comment); gotOrder != tt.wantOrder {
+			if gotOrder := migration.GetOrderFromComment(tt.args.comment); gotOrder != tt.wantOrder {
 				t.Errorf("GetOrderFromComment() = %v, want %v", gotOrder, tt.wantOrder)
 			}
 		})

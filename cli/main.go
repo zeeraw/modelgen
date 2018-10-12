@@ -2,16 +2,16 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
-	"strings"
-
-	"github.com/gobuffalo/packr"
 
 	"github.com/spf13/cobra"
 
 	_ "github.com/go-sql-driver/mysql"
+
+	"github.com/LUSHDigital/modelgen/db"
+	"github.com/LUSHDigital/modelgen/generator"
+	"github.com/LUSHDigital/modelgen/migration"
 )
 
 var (
@@ -21,7 +21,6 @@ var (
 	conn     *string
 	database *sql.DB
 	version  string
-	box      packr.Box
 )
 
 func init() {
@@ -29,8 +28,6 @@ func init() {
 }
 
 func main() {
-	box = packr.NewBox("./tmpl")
-
 	rootCmd := &cobra.Command{}
 
 	pkgName = rootCmd.PersistentFlags().StringP("package", "p", "generated_models", "name of package")
@@ -65,45 +62,38 @@ func main() {
 	}
 }
 
-var formatErr = errors.New("invalid connection string format")
-
-func mkDsn(connect, dbname string) string {
-	parts := strings.Split(connect, "@")
-	if len(parts) < 2 {
-		log.Fatal(formatErr)
-	}
-
-	credentials := strings.Split(parts[0], ":")
-	if len(credentials) < 2 {
-		log.Fatal(formatErr)
-	}
-	database := strings.Split(parts[1], ":")
-	if len(database) < 2 {
-		log.Fatal(formatErr)
-	}
-
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", credentials[0], credentials[1], database[0], database[1], dbname)
-}
-
-func connect() {
-	// connect to database
-	var err error
-	database, err = sql.Open("mysql", mkDsn(*conn, *dbName))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// check for a valid connection
-	if err := database.Ping(); err != nil {
-		log.Fatal(err)
-	}
-}
-
 func validate() {
 	if dbName == nil || *dbName == "" {
 		log.Fatal("Please provide a database name")
 	}
+
 	if conn == nil || *conn == "" {
 		log.Fatal("Please provide a connection string")
 	}
+}
+
+func generate(cmd *cobra.Command, args []string) {
+	validate()
+	database, err := db.Connect(*conn, *dbName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	gen := generator.NewGenerator(database, &generator.Config{
+		Out:     *output,
+		Package: *pkgName,
+	})
+	gen.Run()
+}
+
+func migrate(cmd *cobra.Command, args []string) {
+	validate()
+	database, err := db.Connect(*conn, *dbName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mig := migration.NewMigration(database, &migration.Config{
+		Output: *output,
+	})
+	mig.Run()
 }
