@@ -1,4 +1,4 @@
-package helpers
+package modelgen
 
 import (
 	"database/sql/driver"
