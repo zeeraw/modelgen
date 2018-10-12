@@ -3,8 +3,6 @@ package db
 import (
 	"database/sql"
 	"log"
-
-	"github.com/LUSHDigital/modelgen/sqltypes"
 )
 
 const (
@@ -66,7 +64,7 @@ func (db *DB) GetTables() TableDefinitions {
 func backtick(s string) string { return "`" + s + "`" }
 
 // ExplainTable will return an explaination one database table
-func (db *DB) ExplainTable(name string) []sqltypes.Explain {
+func (db *DB) ExplainTable(name string) []Explain {
 
 	rows, err := db.Query("EXPLAIN " + backtick(name))
 	if err != nil {
@@ -74,9 +72,9 @@ func (db *DB) ExplainTable(name string) []sqltypes.Explain {
 	}
 	defer rows.Close()
 
-	var exs []sqltypes.Explain
+	var exs []Explain
 	for rows.Next() {
-		var ex sqltypes.Explain
+		var ex Explain
 		if err := rows.Scan(&ex.Field, &ex.Type, &ex.Null, &ex.Key, &ex.Default, &ex.Extra); err != nil {
 			log.Fatal(err)
 		}
@@ -87,8 +85,8 @@ func (db *DB) ExplainTable(name string) []sqltypes.Explain {
 }
 
 // ExplainTables will return an explaination of all the database tables
-func (db *DB) ExplainTables(td TableDefinitions) map[string][]sqltypes.Explain {
-	tables := make(map[string][]sqltypes.Explain)
+func (db *DB) ExplainTables(td TableDefinitions) map[string][]Explain {
+	tables := make(map[string][]Explain)
 	for name := range td {
 		tables[name] = db.ExplainTable(name)
 	}

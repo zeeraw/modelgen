@@ -1,4 +1,4 @@
-package sqltypes
+package db
 
 import (
 	"log"

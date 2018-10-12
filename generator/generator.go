@@ -13,7 +13,6 @@ import (
 	"github.com/gobuffalo/packr"
 
 	"github.com/LUSHDigital/modelgen/db"
-	"github.com/LUSHDigital/modelgen/sqltypes"
 	"github.com/LUSHDigital/modelgen/templates"
 )
 
@@ -102,7 +101,7 @@ func writeFile(path string, buf *bytes.Buffer) {
 	buf.WriteTo(f)
 }
 
-func tableDefinitionsToTemplate(explained map[string][]sqltypes.Explain) templates.Tables {
+func tableDefinitionsToTemplate(explained map[string][]db.Explain) templates.Tables {
 	var tbls templates.Tables
 	for tableName, explain := range explained {
 		t := tableDefinitionToTemplate(tableName, explain)
@@ -111,7 +110,7 @@ func tableDefinitionsToTemplate(explained map[string][]sqltypes.Explain) templat
 	return tbls
 }
 
-func tableDefinitionToTemplate(tableName string, explains []sqltypes.Explain) templates.Table {
+func tableDefinitionToTemplate(tableName string, explains []db.Explain) templates.Table {
 	table := templates.Table{
 		Name:    ToPascalCase(tableName),
 		DBName:  tableName,
@@ -122,20 +121,20 @@ func tableDefinitionToTemplate(tableName string, explains []sqltypes.Explain) te
 
 	for _, explain := range explains {
 		f := templates.Field{
-			Type:       sqltypes.AssertType(*explain.Type, *explain.Null),
 			Name:       ToPascalCase(*explain.Field),
+			Type:       db.AssertType(*explain.Type, *explain.Null),
 			ColumnName: strings.ToLower(*explain.Field),
 			Nullable:   *explain.Null == "YES",
 		}
 
 		if *explain.Key == pkIdentifier {
 			table.PKName = *explain.Field
-			table.PKType = sqltypes.AssertType(*explain.Type, *explain.Null)
+			table.PKType = db.AssertType(*explain.Type, *explain.Null)
 		}
 
 		table.Fields = append(table.Fields, f)
 
-		if imp, ok := sqltypes.NeedsImport(f.Type); ok {
+		if imp, ok := db.NeedsImport(f.Type); ok {
 			table.Imports[imp] = struct{}{}
 		}
 	}
