@@ -13,7 +13,6 @@ import (
 	"github.com/gobuffalo/packr"
 
 	"github.com/LUSHDigital/modelgen/db"
-	"github.com/LUSHDigital/modelgen/sqlfmt"
 	"github.com/LUSHDigital/modelgen/sqltypes"
 	"github.com/LUSHDigital/modelgen/templates"
 )
@@ -114,7 +113,7 @@ func tableDefinitionsToTemplate(explained map[string][]sqltypes.Explain) templat
 
 func tableDefinitionToTemplate(tableName string, explains []sqltypes.Explain) templates.Table {
 	table := templates.Table{
-		Name:    sqlfmt.ToPascalCase(tableName),
+		Name:    ToPascalCase(tableName),
 		DBName:  tableName,
 		PKType:  "int64",
 		PKName:  "id",
@@ -123,8 +122,8 @@ func tableDefinitionToTemplate(tableName string, explains []sqltypes.Explain) te
 
 	for _, explain := range explains {
 		f := templates.Field{
-			Name:       sqlfmt.ToPascalCase(*explain.Field),
 			Type:       sqltypes.AssertType(*explain.Type, *explain.Null),
+			Name:       ToPascalCase(*explain.Field),
 			ColumnName: strings.ToLower(*explain.Field),
 			Nullable:   *explain.Null == "YES",
 		}

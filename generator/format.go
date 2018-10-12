@@ -1,4 +1,4 @@
-package sqlfmt
+package generator
 
 import (
 	"strings"
