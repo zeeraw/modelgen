@@ -1,13 +1,18 @@
-package tmpl
+package templates
 
 import (
 	"fmt"
 	"html/template"
 	"strings"
+
+	"github.com/gobuffalo/packr"
+)
+
+const (
+	packrPath = "."
 )
 
 var FuncMap = template.FuncMap{
-	"select_fields":       GetSelectFields,
 	"insert_fields":       GetInsertFields,
 	"insert_values":       GetInsertValues,
 	"insert_args":         GetInsertArgs,
@@ -18,14 +23,14 @@ var FuncMap = template.FuncMap{
 	"upsert_values":       GetUpsertValues,
 	"upsert_on_duplicate": GetUpsertOnDuplicate,
 	"upsert_args":         GetUpsertArgs,
-	"backtick":            Backtick,
 }
 
-func Backtick(s string) string {
-	return "`" + s + "`"
+// Box returns the template packer box
+func Box() packr.Box {
+	return packr.NewBox(packrPath)
 }
 
-func GetInsertFields(fields []TmplField) string {
+func GetInsertFields(fields []Field) string {
 	var parts []string
 	for _, fl := range fields {
 		if fl.ColumnName == "id" {
@@ -36,7 +41,7 @@ func GetInsertFields(fields []TmplField) string {
 	return strings.Join(parts, ", ")
 }
 
-func GetInsertValues(fields []TmplField) string {
+func GetInsertValues(fields []Field) string {
 	var parts []string
 	for _, fl := range fields {
 		switch fl.ColumnName {
@@ -52,14 +57,14 @@ func GetInsertValues(fields []TmplField) string {
 	return strings.Join(parts, ", ")
 }
 
-func GetInsertArgs(m StructTmplData) string {
+func GetInsertArgs(tt TableTemplate) string {
 	var parts []string
-	for _, fl := range m.Model.Fields {
+	for _, fl := range tt.Table.Fields {
 		switch fl.Name {
-		case "ID", "CreatedAt":
+		case "ID", "CreatedAt", tt.Table.PKName:
 			continue
 		}
-		parts = append(parts, fmt.Sprintf("%s.%s", m.Receiver, fl.Name))
+		parts = append(parts, fmt.Sprintf("%s.%s", tt.ReceiverName, fl.Name))
 	}
 	if len(parts) > 0 {
 		return ", " + strings.Join(parts, ", ")
@@ -67,22 +72,22 @@ func GetInsertArgs(m StructTmplData) string {
 	return ""
 }
 
-func GetScanFields(m StructTmplData) template.HTML {
+func GetScanFields(tt TableTemplate) template.HTML {
 	var parts []string
-	for _, fl := range m.Model.Fields {
-		parts = append(parts, fmt.Sprintf("&%s.%s", m.Receiver, fl.Name))
+	for _, fl := range tt.Table.Fields {
+		parts = append(parts, fmt.Sprintf("&%s.%s", tt.ReceiverName, fl.Name))
 	}
 	return template.HTML(strings.Join(parts, ", "))
 }
 
-func GetUpdateArgs(m StructTmplData) template.HTML {
+func GetUpdateArgs(tt TableTemplate) template.HTML {
 	var parts []string
-	for _, fl := range m.Model.Fields {
+	for _, fl := range tt.Table.Fields {
 		switch fl.Name {
 		case "ID", "CreatedAt", "UpdatedAt":
 			continue
 		}
-		parts = append(parts, fmt.Sprintf("%s.%s", m.Receiver, fl.Name))
+		parts = append(parts, fmt.Sprintf("%s.%s", tt.ReceiverName, fl.Name))
 	}
 	if len(parts) > 0 {
 		return template.HTML(strings.Join(parts, ", ") + ", ")
@@ -90,9 +95,9 @@ func GetUpdateArgs(m StructTmplData) template.HTML {
 	return ""
 }
 
-func GetUpdateValues(m StructTmplData) string {
+func GetUpdateValues(tt TableTemplate) string {
 	var parts []string
-	for _, fl := range m.Model.Fields {
+	for _, fl := range tt.Table.Fields {
 		switch fl.Name {
 		case "ID", "CreatedAt":
 			continue
@@ -105,7 +110,7 @@ func GetUpdateValues(m StructTmplData) string {
 	return strings.Join(parts, ", ")
 }
 
-func GetSelectFields(fields []TmplField) string {
+func GetUpsertFields(fields []Field) string {
 	var parts []string
 	for _, fl := range fields {
 		parts = append(parts, "`"+fl.ColumnName+"`")
@@ -113,15 +118,7 @@ func GetSelectFields(fields []TmplField) string {
 	return strings.Join(parts, ", ")
 }
 
-func GetUpsertFields(fields []TmplField) string {
-	var parts []string
-	for _, fl := range fields {
-		parts = append(parts, "`"+fl.ColumnName+"`")
-	}
-	return strings.Join(parts, ", ")
-}
-
-func GetUpsertValues(fields []TmplField) string {
+func GetUpsertValues(fields []Field) string {
 	var parts []string
 	for _, fl := range fields {
 		switch fl.ColumnName {
@@ -135,9 +132,9 @@ func GetUpsertValues(fields []TmplField) string {
 	return strings.Join(parts, ", ")
 }
 
-func GetUpsertOnDuplicate(m StructTmplData) string {
+func GetUpsertOnDuplicate(tt TableTemplate) string {
 	var parts []string
-	for _, fl := range m.Model.Fields {
+	for _, fl := range tt.Table.Fields {
 		switch fl.Name {
 		case "CreatedAt":
 			continue
@@ -152,14 +149,14 @@ func GetUpsertOnDuplicate(m StructTmplData) string {
 	return strings.Join(parts, ", ")
 }
 
-func GetUpsertArgs(m StructTmplData) string {
+func GetUpsertArgs(tt TableTemplate) string {
 	var parts []string
-	for _, fl := range m.Model.Fields {
+	for _, fl := range tt.Table.Fields {
 		switch fl.Name {
 		case "CreatedAt":
 			continue
 		}
-		parts = append(parts, fmt.Sprintf("%s.%s", m.Receiver, fl.Name))
+		parts = append(parts, fmt.Sprintf("%s.%s", tt.ReceiverName, fl.Name))
 	}
 	return strings.Join(parts, ", ")
 }
