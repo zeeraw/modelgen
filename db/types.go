@@ -22,13 +22,13 @@ type SQLType struct {
 	nullable string
 }
 
-var dateType = SQLType{"time.Time", "NullTime"}
-var stringType = SQLType{"string", "NullString"}
+var dateType = SQLType{"time.Time", "modelgen.NullTime"}
+var stringType = SQLType{"string", "modelgen.NullString"}
 var byteSliceType = SQLType{"[]byte", "[]byte"}
-var intType = SQLType{"int64", "NullInt64"}
-var boolType = SQLType{"bool", "NullBool"}
-var floatType = SQLType{"float64", "NullFloat64"}
-var jsonType = SQLType{"RawJSON", "RawJSON"}
+var intType = SQLType{"int64", "modelgen.NullInt64"}
+var boolType = SQLType{"bool", "modelgen.NullBool"}
+var floatType = SQLType{"float64", "modelgen.NullFloat64"}
+var jsonType = SQLType{"RawJSON", "modelgen.RawJSON"}
 
 var dataTypes = map[string]SQLType{
 	"char":    stringType,

@@ -10,8 +10,8 @@ test: install
 	sleep 5
 	./modelgen -c root:@localhost:3307 -d modelgen_tests -p models -o tmp generate
 	golint -set_exit_status tmp
-	rm -rf modelgen
-	rm -rf ./tmp
+	# rm -rf modelgen
+	# rm -rf ./tmp
 test-ci:
 	go test -v -count 1 ./...
 	go build -o modelgen ./cli

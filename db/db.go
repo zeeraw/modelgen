@@ -41,8 +41,7 @@ func (db *DB) GetTables() TableDefinitions {
 	const stmt = `SELECT table_name, column_comment
 				  FROM information_schema.columns AS c
 				  WHERE c.column_key = "PRI"
-				  AND c.table_schema = ?
-      			  AND column_name = "id"`
+				  AND c.table_schema = ?`
 
 	rows, err := db.Query(stmt, db.Name)
 	if err != nil {

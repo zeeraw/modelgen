@@ -2,17 +2,31 @@
 package {{ .PackageName }}
 
 import (
-	"fmt"
-	{{ range $k, $v:= .Table.Imports }}
+    "fmt"
+    "strings"
+	{{- range $k, $v:= .Table.Imports }}
 	"{{$k}}"
 	{{- end }}
 
     "github.com/LUSHDigital/modelgen"
 )
 
+// {{.Table.Name}}Column is a representation of a column in the {{ .Table.DBName }} table in the database
+type {{.Table.Name}}Column string
+
 const (
-    {{.Table.Name}}DBName = "{{.Table.DBName}}"
+    {{.Table.Name}}SelectString = "{{ .Table.Fields | select_fields }}"
+    {{.Table.Name}}DBName = "{{ .Table.DBName }}"
+    {{- range $k, $v := .Table.Fields }}
+    {{ $v.TableName }}{{ $v.Name }} = {{ $v.TableName }}Column("{{ $v.ColumnName }}")
+    {{- end }}
 )
+
+var {{.Table.Name}}Columns = []{{.Table.Name}}Column{
+    {{- range $k, $v:= .Table.Fields }}
+    {{ $v.TableName }}{{ $v.Name }},
+    {{- end }}
+}
 
 // {{.Table.Name}} represents a row in the {{.Table.DBName}} table
 type {{.Table.Name}} struct {
@@ -21,24 +35,38 @@ type {{.Table.Name}} struct {
     {{- end }}
 }
 
+// Build{{.Table.Name}}Select turns one or more {{.Table.Name}}Field into a string for select queries
+func Build{{.Table.Name}}Select(columns []{{.Table.Name}}Column) string {
+	return modelgen.BuildSelect(columns)
+}
+
 // Scan{{.Table.Name}} will map a database row to its model struct
 func Scan{{.Table.Name}}(scanner modelgen.Scanner, {{.ReceiverName}} *{{.Table.Name}}) error {
     return scanner.Scan({{ . | scan_fields}})
 }
 
 // Insert{{.Table.Name}} will insert a new {{.Table.Name}} row in the {{.Table.DBName}} table
+{{- if has_int_pk .Table }}
 func Insert{{.Table.Name}}(qu modelgen.Querier, {{.ReceiverName}} *{{.Table.Name}}) (lastInsertID int64, err error) {
+{{- else  }}
+func Insert{{.Table.Name}}(qu modelgen.Querier, {{.ReceiverName}} *{{.Table.Name}}) (err error) {
+{{- end }}
     const stmt = "INSERT INTO {{.Table.DBName}} ({{.Table.Fields | insert_fields}}) VALUES ({{.Table.Fields | insert_values}})"
+    {{- if has_int_pk .Table }}
     res, err := qu.Exec(stmt{{ . | insert_args }})
     if err != nil {
         return 0, err
     }
     return res.LastInsertId()
+    {{- else  }}
+    _, err := qu.Exec(stmt{{ . | insert_args }})
+    return err
+    {{- end }}
 }
 
 // Find{{.Table.Name}} will find a single single {{.Table.Name}} row in the {{.Table.DBName}} table based on its primary key
 func Find{{.Table.Name}}(qu modelgen.Querier, {{.Table.PKName}} {{.Table.PKType}}) (*{{.Table.Name}}, error) {
-    const stmt = "SELECT * FROM {{.Table.DBName}} WHERE {{.Table.PKName}} = ?"
+    const stmt = "SELECT " + {{.Table.Name}}SelectString + " FROM {{.Table.DBName}} WHERE {{.Table.PKName}} = ?"
     var row = qu.QueryRow(stmt, {{.Table.PKName}})
     var {{.ReceiverName}} = &{{.Table.Name}}{}
     Scan{{.Table.Name}}(row, {{.ReceiverName}})
@@ -47,7 +75,7 @@ func Find{{.Table.Name}}(qu modelgen.Querier, {{.Table.PKName}} {{.Table.PKType}
 
 // Load{{.Table.Name}} will load all or a subset of {{.Table.Name}} rows from the {{.Table.DBName}} table
 func Load{{.Table.Name}}(qu modelgen.Querier, limit, offset int) (set []{{.Table.Name}}, err error) {
-    const stmt = "SELECT * FROM {{.Table.DBName}}"
+    const stmt = "SELECT " + {{.Table.Name}}SelectString + " FROM {{.Table.DBName}}"
     if limit == 0 && offset > 0 {
         err = fmt.Errorf("cannot query with offset but no limit")
         return

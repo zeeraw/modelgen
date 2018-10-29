@@ -2,6 +2,7 @@ package generator
 
 import (
 	"bytes"
+	"fmt"
 	"go/format"
 	"html/template"
 	"io"
@@ -10,10 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gobuffalo/packr"
-
 	"github.com/LUSHDigital/modelgen/db"
 	"github.com/LUSHDigital/modelgen/templates"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/gobuffalo/packr"
 )
 
 const (
@@ -65,8 +66,45 @@ func (g *Generator) Run() {
 	generateFiles(tds, t, g.cfg.Out, g.cfg.Package)
 
 	// copy in helpers and test suite
-	copyFile(g.box, "x_helpers.go.tmpl", "x_helpers.go", "helpers", g.cfg.Out, g.cfg.Package)
-	copyFile(g.box, "x_helpers_test.go.tmpl", "x_helpers_test.go", "helperstest", g.cfg.Out, g.cfg.Package)
+	// g.copyFile("x_helpers.go.tmpl", "x_helpers.go", "helpers")
+	// g.copyFile("x_helpers_test.go.tmpl", "x_helpers_test.go", "helperstest")
+}
+
+func (g *Generator) copyFile(src, dst, templateName string) {
+	dbFile, err := g.box.MustBytes(src)
+	if err != nil {
+		log.Fatalf("cannot retrieve template file: %v", err)
+	}
+
+	t := template.Must(template.New(templateName).Parse(string(dbFile)))
+	buf := new(bytes.Buffer)
+	err = t.Execute(buf, map[string]string{
+		"PackageName": g.cfg.Package,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		log.Fatal(err)
+	}
+	buf = bytes.NewBuffer(formatted)
+
+	if err != nil {
+		log.Fatal("cannot copy file")
+	}
+	of := filepath.Join(g.cfg.Out, dst)
+	to, err := os.Create(of)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer to.Close()
+
+	_, err = io.Copy(to, buf)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func generateFiles(tables templates.Tables, t *template.Template, out, pkg string) {
@@ -76,15 +114,19 @@ func generateFiles(tables templates.Tables, t *template.Template, out, pkg strin
 			ReceiverName: strings.ToLower(string(table.Name[0])),
 			PackageName:  pkg,
 		}
+
 		buf := new(bytes.Buffer)
 		err := t.Execute(buf, tbl)
 		if err != nil {
+			spew.Dump(err)
 			log.Fatal(err)
 		}
 		formatted, err := format.Source(buf.Bytes())
 		if err != nil {
+			spew.Dump(err)
 			log.Fatal(err)
 		}
+		fmt.Println(string(formatted))
 
 		fpath := filepath.Join(out, table.DBName)
 		writeFile(fpath, bytes.NewBuffer(formatted))
@@ -112,11 +154,12 @@ func tableDefinitionsToTemplate(explained map[string][]db.Explain) templates.Tab
 
 func tableDefinitionToTemplate(tableName string, explains []db.Explain) templates.Table {
 	table := templates.Table{
-		Name:    ToPascalCase(tableName),
-		DBName:  tableName,
-		PKType:  "int64",
-		PKName:  "id",
-		Imports: make(map[string]struct{}),
+		Name:     ToPascalCase(tableName),
+		DBName:   tableName,
+		PKExists: false,
+		PKType:   "int64",
+		PKName:   "id",
+		Imports:  make(map[string]struct{}),
 	}
 
 	for _, explain := range explains {
@@ -124,10 +167,12 @@ func tableDefinitionToTemplate(tableName string, explains []db.Explain) template
 			Name:       ToPascalCase(*explain.Field),
 			Type:       db.AssertType(*explain.Type, *explain.Null),
 			ColumnName: strings.ToLower(*explain.Field),
+			TableName:  table.Name,
 			Nullable:   *explain.Null == "YES",
 		}
 
 		if *explain.Key == pkIdentifier {
+			table.PKExists = true
 			table.PKName = *explain.Field
 			table.PKType = db.AssertType(*explain.Type, *explain.Null)
 		}
@@ -140,41 +185,4 @@ func tableDefinitionToTemplate(tableName string, explains []db.Explain) template
 	}
 
 	return table
-}
-
-func copyFile(box packr.Box, src, dst, templateName, out, pkg string) {
-	dbFile, err := box.MustBytes(src)
-	if err != nil {
-		log.Fatalf("cannot retrieve template file: %v", err)
-	}
-
-	t := template.Must(template.New(templateName).Parse(string(dbFile)))
-	buf := new(bytes.Buffer)
-	err = t.Execute(buf, map[string]string{
-		"PackageName": pkg,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	formatted, err := format.Source(buf.Bytes())
-	if err != nil {
-		log.Fatal(err)
-	}
-	buf = bytes.NewBuffer(formatted)
-
-	if err != nil {
-		log.Fatal("cannot copy file")
-	}
-	of := filepath.Join(out, dst)
-	to, err := os.Create(of)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer to.Close()
-
-	_, err = io.Copy(to, buf)
-	if err != nil {
-		log.Fatal(err)
-	}
 }

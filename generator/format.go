@@ -203,6 +203,7 @@ var acronyms = [...]string{
 	"rtos",  // real time operating system
 	"rtp",   // real-time transport protocol
 
+	"sid",   // String Identifier
 	"san",   // storage area network
 	"sane",  // scanner access now easy
 	"sco",   // Santa Cruz Operation
