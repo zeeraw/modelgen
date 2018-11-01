@@ -64,10 +64,6 @@ func (g *Generator) Run() {
 
 	os.MkdirAll(g.cfg.Out, 0777)
 	generateFiles(tds, t, g.cfg.Out, g.cfg.Package)
-
-	// copy in helpers and test suite
-	// g.copyFile("x_helpers.go.tmpl", "x_helpers.go", "helpers")
-	// g.copyFile("x_helpers_test.go.tmpl", "x_helpers_test.go", "helperstest")
 }
 
 func (g *Generator) copyFile(src, dst, templateName string) {
