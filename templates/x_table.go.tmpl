@@ -37,7 +37,7 @@ type {{.Table.Name}} struct {
 
 // Build{{.Table.Name}}Select turns one or more {{.Table.Name}}Field into a string for select queries
 func Build{{.Table.Name}}Select(columns []{{.Table.Name}}Column) string {
-	return modelgen.BuildSelect(columns)
+	return sqlbuilder.BuildSelect(columns)
 }
 
 // Scan{{.Table.Name}} will map a database row to its model struct
