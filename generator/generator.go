@@ -15,6 +15,7 @@ import (
 	"github.com/LUSHDigital/modelgen/templates"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gobuffalo/packr"
+	"golang.org/x/tools/imports"
 )
 
 const (
@@ -124,12 +125,24 @@ func generateFiles(tables templates.Tables, t *template.Template, out, pkg strin
 		}
 		fmt.Println(string(formatted))
 
+		imported, err := imports.Process("", formatted, &imports.Options{
+			Comments:   true,
+			AllErrors:  true,
+			FormatOnly: false,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		buf.Reset()
+		buf.Write(imported)
+
 		fpath := filepath.Join(out, table.DBName)
-		writeFile(fpath, bytes.NewBuffer(formatted))
+		writeGoFile(fpath, buf)
 	}
 }
 
-func writeFile(path string, buf *bytes.Buffer) {
+func writeGoFile(path string, buf *bytes.Buffer) {
 	f, err := os.Create(path + ".go")
 	defer f.Close()
 	if err != nil {
