@@ -59,7 +59,7 @@ func Insert{{.Table.Name}}(qu modelgen.Querier, {{.ReceiverName}} *{{.Table.Name
     }
     return res.LastInsertId()
     {{- else  }}
-    _, err := qu.Exec(stmt{{ . | insert_args }})
+    _, err = qu.Exec(stmt{{ . | insert_args }})
     return err
     {{- end }}
 }
