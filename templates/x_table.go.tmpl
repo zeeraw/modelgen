@@ -131,7 +131,7 @@ func Count{{.Table.Name}}(qu modelgen.Querier) (count int64, err error) {
 func {{.Table.Name}}Exists(qu modelgen.Querier, {{.Table.PKName}} {{.Table.PKType}}) (exists bool, err error) {
     const stmt = "SELECT EXISTS(SELECT 1 FROM {{.Table.DBName}} WHERE {{.Table.PKName}} = ? LIMIT 1) AS `exists`"
     var count int
-    row := qu.QueryRow(stmt, id)
+    row := qu.QueryRow(stmt, {{.Table.PKName}})
     if err = row.Scan(&count); err != nil {
         return
     }
