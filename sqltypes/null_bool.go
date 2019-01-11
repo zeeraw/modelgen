@@ -1,4 +1,4 @@
-package modelgen
+package sqltypes
 
 import (
 	"database/sql"

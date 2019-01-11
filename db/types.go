@@ -22,13 +22,13 @@ type SQLType struct {
 	nullable string
 }
 
-var dateType = SQLType{"time.Time", "modelgen.NullTime"}
-var stringType = SQLType{"string", "modelgen.NullString"}
+var dateType = SQLType{"time.Time", "sqltypes.NullTime"}
+var stringType = SQLType{"string", "sqltypes.NullString"}
 var byteSliceType = SQLType{"[]byte", "[]byte"}
-var intType = SQLType{"int64", "modelgen.NullInt64"}
-var boolType = SQLType{"bool", "modelgen.NullBool"}
-var floatType = SQLType{"float64", "modelgen.NullFloat64"}
-var jsonType = SQLType{"RawJSON", "modelgen.RawJSON"}
+var intType = SQLType{"int64", "sqltypes.NullInt64"}
+var boolType = SQLType{"bool", "sqltypes.NullBool"}
+var floatType = SQLType{"float64", "sqltypes.NullFloat64"}
+var jsonType = SQLType{"sqltypes.RawJSON", "sqltypes.RawJSON"}
 
 var dataTypes = map[string]SQLType{
 	"char":    stringType,
@@ -117,6 +117,13 @@ func NeedsImport(typ string) (imp string, ok bool) {
 		return "time", true
 	case "json.RawMessage":
 		return "encoding/json", true
+	case "sqltypes.NullTime",
+		"sqltypes.NullString",
+		"sqltypes.NullInt64",
+		"sqltypes.NullBool",
+		"sqltypes.NullFloat64",
+		"sqltypes.RawJSON":
+		return "github.com/LUSHDigital/modelgen/sqltypes", true
 	default:
 		return
 	}
