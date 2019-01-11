@@ -18,8 +18,7 @@
 
 # End of https://www.gitignore.io/api/go
 
-.DS_Store
 .idea
-modelgen
-tmp
-vendor
+tmp/
+vendor/
+build/

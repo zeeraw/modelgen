@@ -5,19 +5,24 @@ all: test install post
 test: install
 	rm -rf ./tmp
 	go test -v -count 1 ./...
-	go build -o modelgen ./cli
+	go build -o build/modelgen ./cmd/modelgen
 	docker-compose --no-ansi -f docker-compose.yml up -d --force-recreate
 	sleep 5
-	./modelgen -c root:@localhost:3307 -d modelgen_tests -p models -o tmp generate
+	./build/modelgen -c root:@localhost:3307 -d modelgen_tests -p models -o tmp generate
 	golint -set_exit_status tmp
 	# rm -rf modelgen
 	# rm -rf ./tmp
+gen:
+	go build -o build/modelgen ./cmd/modelgen
+	./build/modelgen -c root:@localhost:3307 -d modelgen_tests -p models -o tmp generate
+	golint -set_exit_status tmp
+
 test-ci:
 	go test -v -count 1 ./...
-	go build -o modelgen ./cli
+	go build -o build/modelgen ./cmd/modelgen
 	docker-compose --no-ansi -f docker-compose.yml up -d --force-recreate
 	sleep 30 # annoying, but for ci.
-	./modelgen -c root:@localhost:3307 -d modelgen_tests -p models -o tmp generate
+	./build/modelgen -c root:@localhost:3307 -d modelgen_tests -p models -o tmp generate
 	golint -set_exit_status tmp
 	rm -rf modelgen
 	rm -rf ./tmp
